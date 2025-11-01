@@ -36,7 +36,7 @@ const SignUp = () => {
 
     try {
       const response = await axios.post(
-        "https://expense-tracker-backend-eight-pearl.vercel.app/api/auth/signup",
+        "https://expense-tracker-backend-chi-six.vercel.app/api/auth/signup",
         {
           fullName,
           email,
@@ -49,7 +49,20 @@ const SignUp = () => {
           },
         }
       );
-
+    // const response = await axios.post(
+    //     "http://localhost:5000/api/auth/signup",
+    //     {
+    //       fullName,
+    //       email,
+    //       password,
+    //       profilePic, // optional — depends if you plan to store it later
+    //     },
+    //     {
+    //       headers: {
+    //         "Content-Type": "application/json",
+    //       },
+    //     }
+    //   );
       console.log("Signup success:", response.data);
 
       // Show success message or redirect

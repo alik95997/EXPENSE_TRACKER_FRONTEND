@@ -25,7 +25,7 @@ const Login = () => {
 
     try {
       const response = await axios.post(
-        "https://expense-tracker-backend-eight-pearl.vercel.app/api/auth/login",
+        "https://expense-tracker-backend-chi-six.vercel.app/api/auth/login",
         { email, password },
         {
           headers: {

@@ -148,7 +148,7 @@ const Income = () => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        "https://https://expense-tracker-backend-eight-pearl.vercel.app/api/income/getincome",
+        "https://expense-tracker-backend-chi-six.vercel.app/api/income/getincome",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -183,7 +183,7 @@ const Income = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        "https://expense-tracker-backend-eight-pearl.vercel.app/api/income/addincome",
+        "https://expense-tracker-backend-chi-six.vercel.app/api/income/addincome",
         {
           method: "POST",
           headers: {
@@ -219,7 +219,7 @@ const Income = () => {
 
     try {
       const response = await fetch(
-        `https://expense-tracker-backend-eight-pearl.vercel.app/api/income/deleteincome/${id}`,
+        `https://expense-tracker-backend-chi-six.vercel.app/api/income/deleteincome/${id}`,
         {
           method: "DELETE",
           headers: {
