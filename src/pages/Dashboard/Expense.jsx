@@ -231,7 +231,7 @@ const Expense = () => {
     setIsLoadingTransactions(true);
     try {
       const response = await fetch(
-        `https://expense-tracker-backend-m2rbt680o-alik95997s-projects.vercel.app/api/expense/deleteexpense/${id}`,
+        `https://expense-tracker-backend-eight-pearl.vercel.app/api/expense/deleteexpense/${id}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
