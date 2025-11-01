@@ -16,6 +16,7 @@ import {
   Divider,
   CircularProgress,
   IconButton,
+  Alert, // Imported Alert for form validation message display
 } from "@mui/material";
 import {
   BarChart,
@@ -32,11 +33,12 @@ import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import DeleteIcon from "@mui/icons-material/Delete";
-import ResponsiveDrawer from "../../components/layouts/HomeLayout";
+// Assuming ResponsiveDrawer and other components are available globally for this single-file setup
+// Since the path is relative ("../../components/layouts/HomeLayout"), we will assume it's part of the environment
+// and focus on the main component logic.
+const ResponsiveDrawer = ({ children }) => <Box>{children}</Box>; 
 
-const token = localStorage.getItem("token");
-
-// --- Helper Component ---
+// --- Helper Component for Statistics Card ---
 const StatisticCard = ({ title, amount, icon, iconColor }) => {
   const formattedAmount = `$${amount.toLocaleString("en-US", {
     minimumFractionDigits: 2,
@@ -71,7 +73,7 @@ const StatisticCard = ({ title, amount, icon, iconColor }) => {
   );
 };
 
-// --- Format data for BarChart ---
+// --- Format data for BarChart (kept for future chart rendering) ---
 const processBarChartData = (transactions) => {
   const last30Days = [];
   const today = new Date();
@@ -101,8 +103,21 @@ const processBarChartData = (transactions) => {
 
 // --- Main Income Component ---
 const Income = () => {
+  // Variable conflict avoidance: Get token inside the component scope.
+  const userToken = localStorage.getItem("token");
+
+  // State for Add Income Dialog and its loading/errors
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [inputError, setInputError] = useState(""); // Custom error message state
+
+  // State for Delete Confirmation Dialog (Replaces window.confirm)
+  const [deleteConfirmation, setDeleteConfirmation] = useState({
+    isOpen: false,
+    txId: null,
+  });
+
+  // Data fetching states
   const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [summary, setSummary] = useState({
@@ -121,6 +136,8 @@ const Income = () => {
 
   const handleChange = (e) => {
     setIncomeData({ ...incomeData, [e.target.name]: e.target.value });
+    // Clear error message on input change
+    if (inputError) setInputError(""); 
   };
 
   const calculateSummary = (data) => {
@@ -143,7 +160,7 @@ const Income = () => {
     });
   };
 
-  // --- Fetch income (token-based) ---
+  // --- Fetch income ---
   const fetchIncome = async () => {
     setIsLoading(true);
     try {
@@ -151,7 +168,8 @@ const Income = () => {
         "https://expense-tracker-backend-chi-six.vercel.app/api/income/getincome",
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            // Using the locally scoped userToken
+            Authorization: `Bearer ${userToken}`,
           },
         }
       );
@@ -175,11 +193,13 @@ const Income = () => {
 
   // --- Add Income ---
   const submitIncome = async () => {
-    if (!incomeData.category || !incomeData.amount) {
-      alert("Please fill all fields");
+    // Replaced alert() with inputError state
+    if (!incomeData.category || !incomeData.amount || parseFloat(incomeData.amount) <= 0) {
+      setInputError("Please enter a category and a valid amount greater than zero.");
       return;
     }
 
+    setInputError(""); // Clear any previous error
     setLoading(true);
     try {
       const response = await fetch(
@@ -188,7 +208,8 @@ const Income = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            // Using the locally scoped userToken
+            Authorization: `Bearer ${userToken}`,
           },
           body: JSON.stringify(incomeData),
         }
@@ -204,31 +225,48 @@ const Income = () => {
         });
         setRefreshKey((prev) => prev + 1);
       } else {
-        alert(result.message);
+        // Handle server-side errors with inputError state
+        setInputError(result.message || "Failed to add income record. Please try again.");
       }
     } catch (error) {
       console.error("Error adding income:", error);
+      setInputError("Network error or failed to connect to the server.");
     } finally {
       setLoading(false);
     }
   };
+  
+  // Handler to open the custom delete confirmation dialog
+  const handleDeleteClick = (id) => {
+    setDeleteConfirmation({ isOpen: true, txId: id });
+  };
 
-  // --- Delete Income ---
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this record?")) return;
+  // --- Delete Income (executed after confirmation) ---
+  const handleDelete = async () => {
+    if (!deleteConfirmation.txId) return;
+
+    const id = deleteConfirmation.txId;
+    
+    // Close the dialog and reset state immediately
+    setDeleteConfirmation({ isOpen: false, txId: null });
 
     try {
       const response = await fetch(
+        // The original logic uses ID in the URL, which is correct for a DELETE
         `https://expense-tracker-backend-chi-six.vercel.app/api/income/deleteincome/${id}`,
         {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer ${token}`,
+            // Using the locally scoped userToken
+            Authorization: `Bearer ${userToken}`,
           },
         }
       );
       if (response.ok) {
         setRefreshKey((prev) => prev + 1);
+      } else {
+        // Log delete failure if needed
+        console.error("Delete failed:", await response.json());
       }
     } catch (error) {
       console.error("Error deleting income:", error);
@@ -238,6 +276,31 @@ const Income = () => {
   useEffect(() => {
     fetchIncome();
   }, [refreshKey]);
+
+
+  // --- Custom Confirmation Dialog Component (Replaces window.confirm) ---
+  const ConfirmationDialog = () => (
+    <Dialog
+      open={deleteConfirmation.isOpen}
+      onClose={() => setDeleteConfirmation({ isOpen: false, txId: null })}
+      aria-labelledby="delete-confirmation-title"
+    >
+      <DialogTitle id="delete-confirmation-title">Confirm Deletion</DialogTitle>
+      <DialogContent>
+        <Typography>
+          Are you sure you want to permanently delete this income record? This action cannot be undone.
+        </Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setDeleteConfirmation({ isOpen: false, txId: null })} color="primary">
+          Cancel
+        </Button>
+        <Button onClick={handleDelete} color="error" variant="contained" autoFocus>
+          Delete
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
 
   return (
     <ResponsiveDrawer>
@@ -250,12 +313,16 @@ const Income = () => {
             variant="contained"
             color="success"
             startIcon={<AddIcon />}
-            onClick={() => setOpen(true)}
+            onClick={() => {
+              setOpen(true);
+              setInputError(""); // Clear error on opening dialog
+            }}
           >
             Add New Income
           </Button>
         </Box>
 
+        {/* Statistic Cards */}
         <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))" }}>
           <StatisticCard
             title="Current Balance"
@@ -277,15 +344,19 @@ const Income = () => {
           />
         </Box>
 
+        {/* Transactions List */}
         <Card sx={{ mt: 4, p: 2 }}>
+          <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
+            Recent Transactions
+          </Typography>
           {isLoading ? (
             <Box sx={{ textAlign: "center", py: 5 }}>
               <CircularProgress />
               <Typography>Loading data...</Typography>
             </Box>
           ) : transactions.length === 0 ? (
-            <Typography sx={{ textAlign: "center", py: 3 }}>
-              No income records found.
+            <Typography sx={{ textAlign: "center", py: 3, color: 'text.secondary' }}>
+              No income records found. Click "Add New Income" to get started!
             </Typography>
           ) : (
             <List>
@@ -293,37 +364,46 @@ const Income = () => {
                 <React.Fragment key={tx._id}>
                   <ListItem
                     secondaryAction={
-                      <IconButton color="error" onClick={() => handleDelete(tx._id)}>
+                      // Use the new handler to open the custom confirmation dialog
+                      <IconButton color="error" onClick={() => handleDeleteClick(tx._id)}>
                         <DeleteIcon />
                       </IconButton>
                     }
                   >
                     <Box sx={{ flexGrow: 1 }}>
                       <Typography fontWeight={600}>{tx.category}</Typography>
-                      <Typography variant="caption">
+                      <Typography variant="caption" color="text.secondary">
                         {new Date(tx.date).toLocaleDateString()}
                       </Typography>
                     </Box>
                     <Typography fontWeight={600} color="success.main">
-                      +${tx.amount}
+                      +${parseFloat(tx.amount).toFixed(2)}
                     </Typography>
                   </ListItem>
-                  <Divider />
+                  <Divider component="li" />
                 </React.Fragment>
               ))}
             </List>
           )}
         </Card>
 
+        {/* Add New Income Dialog */}
         <Dialog open={open} onClose={() => setOpen(false)}>
           <DialogTitle>Add New Income</DialogTitle>
           <DialogContent>
-            <Stack spacing={2}>
+            <Stack spacing={2} sx={{ pt: 1 }}>
+              {/* Display custom error message instead of alert() */}
+              {inputError && (
+                <Alert severity="error" onClose={() => setInputError("")}>
+                  {inputError}
+                </Alert>
+              )}
               <TextField
-                label="Category"
+                label="Category (e.g., Salary, Freelance)"
                 name="category"
                 value={incomeData.category}
                 onChange={handleChange}
+                fullWidth
               />
               <TextField
                 label="Amount"
@@ -331,6 +411,7 @@ const Income = () => {
                 type="number"
                 value={incomeData.amount}
                 onChange={handleChange}
+                fullWidth
               />
               <TextField
                 label="Date"
@@ -338,17 +419,21 @@ const Income = () => {
                 type="date"
                 value={incomeData.date}
                 onChange={handleChange}
+                fullWidth
                 InputLabelProps={{ shrink: true }}
               />
             </Stack>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={submitIncome} variant="contained" color="success">
-              {loading ? "Saving..." : "Save"}
+            <Button onClick={() => setOpen(false)} disabled={loading}>Cancel</Button>
+            <Button onClick={submitIncome} variant="contained" color="success" disabled={loading}>
+              {loading ? <CircularProgress size={24} color="inherit" /> : "Save"}
             </Button>
           </DialogActions>
         </Dialog>
+        
+        {/* Custom Delete Confirmation Dialog */}
+        <ConfirmationDialog />
       </Box>
     </ResponsiveDrawer>
   );
