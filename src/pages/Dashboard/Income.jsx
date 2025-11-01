@@ -148,7 +148,7 @@ const Income = () => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        "https://expense-tracker-backend-tan-gamma.vercel.app/api/income/getincome",
+        "https://https://expense-tracker-backend-m2rbt680o-alik95997s-projects.vercel.app/api/income/getincome",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -183,7 +183,7 @@ const Income = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        "https://expense-tracker-backend-tan-gamma.vercel.app/api/income/addincome",
+        "https://https://expense-tracker-backend-m2rbt680o-alik95997s-projects.vercel.app/api/income/addincome",
         {
           method: "POST",
           headers: {
@@ -219,7 +219,7 @@ const Income = () => {
 
     try {
       const response = await fetch(
-        `https://expense-tracker-backend-tan-gamma.vercel.app/api/income/deleteincome/${id}`,
+        `https://expense-tracker-backend-m2rbt680o-alik95997s-projects.vercel.app/api/income/deleteincome/${id}`,
         {
           method: "DELETE",
           headers: {

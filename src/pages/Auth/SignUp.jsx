@@ -36,7 +36,7 @@ const SignUp = () => {
 
     try {
       const response = await axios.post(
-        "https://expense-tracker-backend-tan-gamma.vercel.app/api/auth/signup",
+        "https://expense-tracker-backend-m2rbt680o-alik95997s-projects.vercel.app/api/auth/signup",
         {
           fullName,
           email,

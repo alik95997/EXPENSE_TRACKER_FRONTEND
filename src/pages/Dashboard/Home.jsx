@@ -252,10 +252,10 @@ const Home = () => {
       const token = localStorage.getItem("token");
 
       const [incomeRes, expenseRes] = await Promise.all([
-        fetch("https://expense-tracker-backend-tan-gamma.vercel.app/api/income/getincome", {
+        fetch("https://expense-tracker-backend-m2rbt680o-alik95997s-projects.vercel.app/api/income/getincome", {
           headers: { Authorization: `Bearer ${token}` },
         }).then((r) => r.json()),
-        fetch("https://expense-tracker-backend-tan-gamma.vercel.app/api/expense/getexpense", {
+        fetch("https://expense-tracker-backend-m2rbt680o-alik95997s-projects.vercel.app/api/expense/getexpense", {
           headers: { Authorization: `Bearer ${token}` },
         }).then((r) => r.json()),
       ]);

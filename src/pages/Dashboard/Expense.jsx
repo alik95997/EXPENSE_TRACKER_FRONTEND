@@ -146,7 +146,7 @@ const Expense = () => {
     setIsLoadingTransactions(true);
     try {
       const response = await fetch(
-        `https://expense-tracker-backend-tan-gamma.vercel.app/api/expense/getexpense`,
+        `https://expense-tracker-backend-m2rbt680o-alik95997s-projects.vercel.app/api/expense/getexpense`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -194,7 +194,7 @@ const Expense = () => {
 
     try {
       const response = await fetch(
-        `https://expense-tracker-backend-tan-gamma.vercel.app/api/expense/addexpense`,
+        `https://expense-tracker-backend-m2rbt680o-alik95997s-projects.vercel.app/api/expense/addexpense`,
         {
           method: "POST",
           headers: {
@@ -231,7 +231,7 @@ const Expense = () => {
     setIsLoadingTransactions(true);
     try {
       const response = await fetch(
-        `https://expense-tracker-backend-tan-gamma.vercel.app/api/expense/deleteexpense/${id}`,
+        `https://expense-tracker-backend-m2rbt680o-alik95997s-projects.vercel.app/api/expense/deleteexpense/${id}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
