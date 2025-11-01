@@ -22,6 +22,12 @@ const SignUp = () => {
       return;
     }
 
+ const nameRegex = /^[A-Za-z\s'-]+$/;
+    if (!nameRegex.test(fullName)) {
+        setError("Name can only contain letters, spaces, hyphens, or apostrophes.");
+        return;
+    }
+
     if (!validateEmail(email)) {
       setError("Please enter a valid email address");
       return;
@@ -29,6 +35,11 @@ const SignUp = () => {
 
     if (!password) {
       setError("Please enter your password");
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long.");
       return;
     }
 
@@ -49,20 +60,20 @@ const SignUp = () => {
           },
         }
       );
-    // const response = await axios.post(
-    //     "http://localhost:5000/api/auth/signup",
-    //     {
-    //       fullName,
-    //       email,
-    //       password,
-    //       profilePic, // optional — depends if you plan to store it later
-    //     },
-    //     {
-    //       headers: {
-    //         "Content-Type": "application/json",
-    //       },
-    //     }
-    //   );
+      // const response = await axios.post(
+      //     "http://localhost:5000/api/auth/signup",
+      //     {
+      //       fullName,
+      //       email,
+      //       password,
+      //       profilePic, // optional — depends if you plan to store it later
+      //     },
+      //     {
+      //       headers: {
+      //         "Content-Type": "application/json",
+      //       },
+      //     }
+      //   );
       console.log("Signup success:", response.data);
 
       // Show success message or redirect
@@ -73,6 +84,7 @@ const SignUp = () => {
       const message =
         err.response?.data?.message || "Signup failed. Please try again.";
       setError(message);
+      alert(error.message);
     }
   };
 
