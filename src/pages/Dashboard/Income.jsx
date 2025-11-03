@@ -34,7 +34,7 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ResponsiveDrawer from "../../components/layouts/HomeLayout";
 
-const token = localStorage.getItem("token");
+// Removed the static token definition here. Token fetching is moved inside functions.
 
 // --- Helper Component ---
 const StatisticCard = ({ title, amount, icon, iconColor }) => {
@@ -77,6 +77,7 @@ const processBarChartData = (transactions) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // Generate the last 30 days' data points
   for (let i = 30; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(today.getDate() - i);
@@ -88,15 +89,19 @@ const processBarChartData = (transactions) => {
     });
   }
 
+  // Populate the income for the existing days
   transactions.forEach((tx) => {
+    // Ensure the date conversion is robust
     const txDate = new Date(tx.date).toISOString().slice(0, 10);
     const dayData = last30Days.find((d) => d.date === txDate);
     if (dayData) {
-      dayData.income += parseFloat(tx.amount) || 0;
+      // Use amount property if present, otherwise default to 0
+      dayData.income += parseFloat(tx.amount) || 0; 
     }
   });
 
-  return last30Days;
+  // Filter out days older than 30 days and return
+  return last30Days.slice(1); // To include exactly the last 30 days, we remove the first entry (30 days ago) if we loop from 30 down to 0, or adjust the loop boundary. Keeping this for simplicity as it maintains the structure of the original function.
 };
 
 // --- Main Income Component ---
@@ -127,7 +132,9 @@ const Income = () => {
     let total = 0;
     let last30Days = 0;
     const thirtyDaysAgo = new Date();
+    // Set the check point 30 days ago, starting at midnight
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    thirtyDaysAgo.setHours(0, 0, 0, 0); 
 
     data.forEach((tx) => {
       const amount = parseFloat(tx.amount) || 0;
@@ -139,12 +146,20 @@ const Income = () => {
     setSummary({
       totalIncome: total,
       last30DaysIncome: last30Days,
-      balance: total,
+      balance: total, // Assuming total income *is* the balance for this simplified view
     });
   };
 
   // --- Fetch income (token-based) ---
   const fetchIncome = async () => {
+    const token = localStorage.getItem("token"); // Fetched inside the function
+    if (!token) {
+        setIsLoading(false);
+        console.warn("Token not found. Cannot fetch income.");
+        // Consider redirecting to login here
+        return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch(
@@ -175,9 +190,14 @@ const Income = () => {
 
   // --- Add Income ---
   const submitIncome = async () => {
+    const token = localStorage.getItem("token"); // Fetched inside the function
     if (!incomeData.category || !incomeData.amount) {
       alert("Please fill all fields");
       return;
+    }
+    if (!token) {
+        alert("Authentication failed. Please log in again.");
+        return;
     }
 
     setLoading(true);
@@ -202,7 +222,7 @@ const Income = () => {
           amount: "",
           date: new Date().toISOString().slice(0, 10),
         });
-        setRefreshKey((prev) => prev + 1);
+        setRefreshKey((prev) => prev + 1); // Trigger refresh
       } else {
         alert(result.message);
       }
@@ -215,7 +235,12 @@ const Income = () => {
 
   // --- Delete Income ---
   const handleDelete = async (id) => {
+    const token = localStorage.getItem("token"); // Fetched inside the function
     if (!window.confirm("Delete this record?")) return;
+    if (!token) {
+        alert("Authentication failed. Please log in again.");
+        return;
+    }
 
     try {
       const response = await fetch(
@@ -228,7 +253,10 @@ const Income = () => {
         }
       );
       if (response.ok) {
-        setRefreshKey((prev) => prev + 1);
+        setRefreshKey((prev) => prev + 1); // Trigger refresh
+      } else {
+          const result = await response.json();
+          alert(result.message || "Failed to delete income.");
       }
     } catch (error) {
       console.error("Error deleting income:", error);
@@ -237,7 +265,7 @@ const Income = () => {
 
   useEffect(() => {
     fetchIncome();
-  }, [refreshKey]);
+  }, [refreshKey]); // Dependency on refreshKey to refetch after CRUD operations
 
   return (
     <ResponsiveDrawer>
@@ -256,6 +284,7 @@ const Income = () => {
           </Button>
         </Box>
 
+        {/* Statistic Cards */}
         <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))" }}>
           <StatisticCard
             title="Current Balance"
@@ -277,14 +306,51 @@ const Income = () => {
           />
         </Box>
 
+        {/* Income Chart (NEWLY ADDED) */}
+        <Card sx={{ mt: 4, p: 2, height: 350 }}>
+            <Typography variant="h6" fontWeight={600} gutterBottom>
+                Income Trend (Last 30 Days)
+            </Typography>
+            {isLoading ? (
+                <Box sx={{ textAlign: "center", py: 5 }}>
+                    <CircularProgress />
+                    <Typography>Loading chart data...</Typography>
+                </Box>
+            ) : chartData.length === 0 ? (
+                <Typography sx={{ textAlign: "center", py: 3, color: "text.secondary" }}>
+                    Not enough data to display a chart.
+                </Typography>
+            ) : (
+                <ResponsiveContainer width="100%" height="90%">
+                    <BarChart
+                        data={chartData}
+                        margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+                    >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="dayName" stroke="#333" />
+                        <YAxis stroke="#333" formatter={(value) => `$${value}`} />
+                        <Tooltip 
+                            formatter={(value) => [`$${value.toFixed(2)}`, 'Income']} 
+                            labelFormatter={(label, props) => props.length > 0 ? `${props[0].payload.date} (${label})` : label}
+                        />
+                        <Bar dataKey="income" fill="#4caf50" name="Daily Income" />
+                    </BarChart>
+                </ResponsiveContainer>
+            )}
+        </Card>
+
+        {/* Income Transactions List */}
         <Card sx={{ mt: 4, p: 2 }}>
+            <Typography variant="h6" fontWeight={600} gutterBottom>
+                Recent Transactions
+            </Typography>
           {isLoading ? (
             <Box sx={{ textAlign: "center", py: 5 }}>
               <CircularProgress />
-              <Typography>Loading data...</Typography>
+              <Typography>Loading transactions...</Typography>
             </Box>
           ) : transactions.length === 0 ? (
-            <Typography sx={{ textAlign: "center", py: 3 }}>
+            <Typography sx={{ textAlign: "center", py: 3, color: "text.secondary" }}>
               No income records found.
             </Typography>
           ) : (
@@ -300,21 +366,22 @@ const Income = () => {
                   >
                     <Box sx={{ flexGrow: 1 }}>
                       <Typography fontWeight={600}>{tx.category}</Typography>
-                      <Typography variant="caption">
+                      <Typography variant="caption" color="text.secondary">
                         {new Date(tx.date).toLocaleDateString()}
                       </Typography>
                     </Box>
                     <Typography fontWeight={600} color="success.main">
-                      +${tx.amount}
+                      +${parseFloat(tx.amount).toFixed(2)}
                     </Typography>
                   </ListItem>
-                  <Divider />
+                  <Divider component="li" />
                 </React.Fragment>
               ))}
             </List>
           )}
         </Card>
 
+        {/* Add Income Dialog */}
         <Dialog open={open} onClose={() => setOpen(false)}>
           <DialogTitle>Add New Income</DialogTitle>
           <DialogContent>
@@ -324,6 +391,8 @@ const Income = () => {
                 name="category"
                 value={incomeData.category}
                 onChange={handleChange}
+                fullWidth
+                margin="dense"
               />
               <TextField
                 label="Amount"
@@ -331,6 +400,9 @@ const Income = () => {
                 type="number"
                 value={incomeData.amount}
                 onChange={handleChange}
+                fullWidth
+                margin="dense"
+                inputProps={{ min: "0.01", step: "0.01" }}
               />
               <TextField
                 label="Date"
@@ -338,13 +410,15 @@ const Income = () => {
                 type="date"
                 value={incomeData.date}
                 onChange={handleChange}
+                fullWidth
+                margin="dense"
                 InputLabelProps={{ shrink: true }}
               />
             </Stack>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={submitIncome} variant="contained" color="success">
+            <Button onClick={submitIncome} variant="contained" color="success" disabled={loading}>
               {loading ? "Saving..." : "Save"}
             </Button>
           </DialogActions>
