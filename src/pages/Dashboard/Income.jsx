@@ -33,7 +33,7 @@ import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ResponsiveDrawer from "../../components/layouts/HomeLayout";
-
+import { useGetIncomeQuery } from "../../app/services/expenseApi";
 // Removed the static token definition here. Token fetching is moved inside functions.
 
 // --- Helper Component ---
@@ -96,7 +96,7 @@ const processBarChartData = (transactions) => {
     const dayData = last30Days.find((d) => d.date === txDate);
     if (dayData) {
       // Use amount property if present, otherwise default to 0
-      dayData.income += parseFloat(tx.amount) || 0; 
+      dayData.income += parseFloat(tx.amount) || 0;
     }
   });
 
@@ -106,10 +106,12 @@ const processBarChartData = (transactions) => {
 
 // --- Main Income Component ---
 const Income = () => {
+  const { data, error, isLoading } = useGetIncomeQuery();
+  console.log(data);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [transactions, setTransactions] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [Loadingg, setLoadingg] = useState(true);
   const [summary, setSummary] = useState({
     balance: 0,
     totalIncome: 0,
@@ -134,7 +136,7 @@ const Income = () => {
     const thirtyDaysAgo = new Date();
     // Set the check point 30 days ago, starting at midnight
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    thirtyDaysAgo.setHours(0, 0, 0, 0); 
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
 
     data.forEach((tx) => {
       const amount = parseFloat(tx.amount) || 0;
@@ -154,13 +156,13 @@ const Income = () => {
   const fetchIncome = async () => {
     const token = localStorage.getItem("token"); // Fetched inside the function
     if (!token) {
-        setIsLoading(false);
-        console.warn("Token not found. Cannot fetch income.");
-        // Consider redirecting to login here
-        return;
+      setLoadingg(false);
+      console.warn("Token not found. Cannot fetch income.");
+      // Consider redirecting to login here
+      return;
     }
 
-    setIsLoading(true);
+    setLoadingg(true);
     try {
       const response = await fetch(
         "https://expense-tracker-backend-chi-six.vercel.app/api/income/getincome",
@@ -184,7 +186,7 @@ const Income = () => {
     } catch (error) {
       console.error("Error fetching income:", error);
     } finally {
-      setIsLoading(false);
+      setLoadingg(false);
     }
   };
 
@@ -196,8 +198,8 @@ const Income = () => {
       return;
     }
     if (!token) {
-        alert("Authentication failed. Please log in again.");
-        return;
+      alert("Authentication failed. Please log in again.");
+      return;
     }
 
     setLoading(true);
@@ -238,8 +240,8 @@ const Income = () => {
     const token = localStorage.getItem("token"); // Fetched inside the function
     if (!window.confirm("Delete this record?")) return;
     if (!token) {
-        alert("Authentication failed. Please log in again.");
-        return;
+      alert("Authentication failed. Please log in again.");
+      return;
     }
 
     try {
@@ -255,8 +257,8 @@ const Income = () => {
       if (response.ok) {
         setRefreshKey((prev) => prev + 1); // Trigger refresh
       } else {
-          const result = await response.json();
-          alert(result.message || "Failed to delete income.");
+        const result = await response.json();
+        alert(result.message || "Failed to delete income.");
       }
     } catch (error) {
       console.error("Error deleting income:", error);
@@ -285,7 +287,13 @@ const Income = () => {
         </Box>
 
         {/* Statistic Cards */}
-        <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))" }}>
+        <Box
+          sx={{
+            display: "grid",
+            gap: 3,
+            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+          }}
+        >
           <StatisticCard
             title="Current Balance"
             amount={summary.balance}
@@ -308,49 +316,57 @@ const Income = () => {
 
         {/* Income Chart (NEWLY ADDED) */}
         <Card sx={{ mt: 4, p: 2, height: 350 }}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-                Income Trend (Last 30 Days)
+          <Typography variant="h6" fontWeight={600} gutterBottom>
+            Income Trend (Last 30 Days)
+          </Typography>
+          {Loadingg ? (
+            <Box sx={{ textAlign: "center", py: 5 }}>
+              <CircularProgress />
+              <Typography>Loading chart data...</Typography>
+            </Box>
+          ) : chartData.length === 0 ? (
+            <Typography
+              sx={{ textAlign: "center", py: 3, color: "text.secondary" }}
+            >
+              Not enough data to display a chart.
             </Typography>
-            {isLoading ? (
-                <Box sx={{ textAlign: "center", py: 5 }}>
-                    <CircularProgress />
-                    <Typography>Loading chart data...</Typography>
-                </Box>
-            ) : chartData.length === 0 ? (
-                <Typography sx={{ textAlign: "center", py: 3, color: "text.secondary" }}>
-                    Not enough data to display a chart.
-                </Typography>
-            ) : (
-                <ResponsiveContainer width="100%" height="90%">
-                    <BarChart
-                        data={chartData}
-                        margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
-                    >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="dayName" stroke="#333" />
-                        <YAxis stroke="#333" formatter={(value) => `$${value}`} />
-                        <Tooltip 
-                            formatter={(value) => [`$${value.toFixed(2)}`, 'Income']} 
-                            labelFormatter={(label, props) => props.length > 0 ? `${props[0].payload.date} (${label})` : label}
-                        />
-                        <Bar dataKey="income" fill="#4caf50" name="Daily Income" />
-                    </BarChart>
-                </ResponsiveContainer>
-            )}
+          ) : (
+            <ResponsiveContainer width="100%" height="90%">
+              <BarChart
+                data={chartData}
+                margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="dayName" stroke="#333" />
+                <YAxis stroke="#333" formatter={(value) => `$${value}`} />
+                <Tooltip
+                  formatter={(value) => [`$${value.toFixed(2)}`, "Income"]}
+                  labelFormatter={(label, props) =>
+                    props.length > 0
+                      ? `${props[0].payload.date} (${label})`
+                      : label
+                  }
+                />
+                <Bar dataKey="income" fill="#4caf50" name="Daily Income" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </Card>
 
         {/* Income Transactions List */}
         <Card sx={{ mt: 4, p: 2 }}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-                Recent Transactions
-            </Typography>
-          {isLoading ? (
+          <Typography variant="h6" fontWeight={600} gutterBottom>
+            Recent Transactions
+          </Typography>
+          {Loadingg ? (
             <Box sx={{ textAlign: "center", py: 5 }}>
               <CircularProgress />
               <Typography>Loading transactions...</Typography>
             </Box>
           ) : transactions.length === 0 ? (
-            <Typography sx={{ textAlign: "center", py: 3, color: "text.secondary" }}>
+            <Typography
+              sx={{ textAlign: "center", py: 3, color: "text.secondary" }}
+            >
               No income records found.
             </Typography>
           ) : (
@@ -359,7 +375,10 @@ const Income = () => {
                 <React.Fragment key={tx._id}>
                   <ListItem
                     secondaryAction={
-                      <IconButton color="error" onClick={() => handleDelete(tx._id)}>
+                      <IconButton
+                        color="error"
+                        onClick={() => handleDelete(tx._id)}
+                      >
                         <DeleteIcon />
                       </IconButton>
                     }
@@ -418,7 +437,12 @@ const Income = () => {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={submitIncome} variant="contained" color="success" disabled={loading}>
+            <Button
+              onClick={submitIncome}
+              variant="contained"
+              color="success"
+              disabled={loading}
+            >
               {loading ? "Saving..." : "Save"}
             </Button>
           </DialogActions>

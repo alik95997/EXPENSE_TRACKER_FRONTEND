@@ -41,7 +41,6 @@ function ResponsiveDrawer(props) {
     localStorage.clear();
     navigate("/login");
     handleDrawerClose();
-    
   };
 
   const handleDrawerClose = () => {

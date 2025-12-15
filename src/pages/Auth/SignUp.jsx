@@ -22,10 +22,12 @@ const SignUp = () => {
       return;
     }
 
- const nameRegex = /^[A-Za-z\s'-]+$/;
+    const nameRegex = /^[A-Za-z\s'-]+$/;
     if (!nameRegex.test(fullName)) {
-        setError("Name can only contain letters, spaces, hyphens, or apostrophes.");
-        return;
+      setError(
+        "Name can only contain letters, spaces, hyphens, or apostrophes."
+      );
+      return;
     }
 
     if (!validateEmail(email)) {
