@@ -34,7 +34,7 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ResponsiveDrawer from "../../components/layouts/HomeLayout";
 import api from "../../utils/api";
-import StatisticCard from "../../components/Cards/StatisticCard";
+import StatisticCard from "../../components/cards/StatisticCard";
 
 const processBarChartData = (transactions) => {
   const last30Days = [];

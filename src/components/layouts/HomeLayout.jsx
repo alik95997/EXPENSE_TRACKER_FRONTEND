@@ -36,8 +36,6 @@ function ResponsiveDrawer(props) {
   const location = useLocation();
   const [name, setName] = useState("");
 
-  // const name = localStorage.getItem("userName");
-
   useEffect(() => {
     const fetchProfile = async () => {
       const response = await api.get("/auth/profile");
@@ -48,6 +46,7 @@ function ResponsiveDrawer(props) {
   }, []);
 
   const handleLogout = () => {
+    
     localStorage.removeItem("userId");
     localStorage.clear();
     navigate("/login");
