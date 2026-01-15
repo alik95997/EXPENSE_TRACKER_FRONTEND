@@ -33,51 +33,13 @@ import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ResponsiveDrawer from "../../components/layouts/HomeLayout";
-import { useGetIncomeQuery } from "../../app/services/expenseApi";
-// Removed the static token definition here. Token fetching is moved inside functions.
+import api from "../../utils/api";
+import StatisticCard from "../../components/Cards/StatisticCard";
 
-// --- Helper Component ---
-const StatisticCard = ({ title, amount, icon, iconColor }) => {
-  const formattedAmount = `$${amount.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-  })}`;
-  return (
-    <Card sx={{ borderRadius: 2, boxShadow: 3 }}>
-      <CardContent>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-          {React.cloneElement(icon, {
-            color: iconColor,
-            sx: { fontSize: 30, mr: 1.5 },
-          })}
-          <Typography
-            variant="subtitle2"
-            color="text.secondary"
-            sx={{ fontWeight: 600 }}
-          >
-            {title}
-          </Typography>
-        </Box>
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 700,
-            color: iconColor === "success" ? "success.main" : "primary.main",
-          }}
-        >
-          {formattedAmount}
-        </Typography>
-      </CardContent>
-    </Card>
-  );
-};
-
-// --- Format data for BarChart ---
 const processBarChartData = (transactions) => {
   const last30Days = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
-  // Generate the last 30 days' data points
   for (let i = 30; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(today.getDate() - i);
@@ -89,25 +51,20 @@ const processBarChartData = (transactions) => {
     });
   }
 
-  // Populate the income for the existing days
   transactions.forEach((tx) => {
-    // Ensure the date conversion is robust
     const txDate = new Date(tx.date).toISOString().slice(0, 10);
     const dayData = last30Days.find((d) => d.date === txDate);
     if (dayData) {
-      // Use amount property if present, otherwise default to 0
       dayData.income += parseFloat(tx.amount) || 0;
     }
   });
 
-  // Filter out days older than 30 days and return
   return last30Days.slice(1); // To include exactly the last 30 days, we remove the first entry (30 days ago) if we loop from 30 down to 0, or adjust the loop boundary. Keeping this for simplicity as it maintains the structure of the original function.
 };
 
 // --- Main Income Component ---
 const Income = () => {
-  const { data, error, isLoading } = useGetIncomeQuery();
-  console.log(data);
+  // const { data, error, isLoading } = useGetIncomeQuery();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [transactions, setTransactions] = useState([]);
@@ -148,33 +105,16 @@ const Income = () => {
     setSummary({
       totalIncome: total,
       last30DaysIncome: last30Days,
-      balance: total, // Assuming total income *is* the balance for this simplified view
+      balance: total,
     });
   };
 
-  // --- Fetch income (token-based) ---
   const fetchIncome = async () => {
-    const token = localStorage.getItem("token"); // Fetched inside the function
-    if (!token) {
-      setLoadingg(false);
-      console.warn("Token not found. Cannot fetch income.");
-      // Consider redirecting to login here
-      return;
-    }
-
     setLoadingg(true);
     try {
-      const response = await fetch(
-        "https://expense-tracker-backend-chi-six.vercel.app/api/income/getincome",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const result = await response.json();
-      if (response.ok) {
+      const response = await api.get("/income/getincome");
+      const result = response.data;
+      if (response.status === 200) {
         const data = result.data || [];
         data.sort((a, b) => new Date(b.date) - new Date(a.date));
         setTransactions(data);
@@ -190,34 +130,19 @@ const Income = () => {
     }
   };
 
-  // --- Add Income ---
   const submitIncome = async () => {
-    const token = localStorage.getItem("token"); // Fetched inside the function
     if (!incomeData.category || !incomeData.amount) {
       alert("Please fill all fields");
       return;
     }
-    if (!token) {
-      alert("Authentication failed. Please log in again.");
-      return;
-    }
 
     setLoading(true);
+    console.log(incomeData);
     try {
-      const response = await fetch(
-        "https://expense-tracker-backend-chi-six.vercel.app/api/income/addincome",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(incomeData),
-        }
-      );
+      const response = await api.post("/income/addincome", incomeData);
 
-      const result = await response.json();
-      if (response.ok) {
+      const result = response.data;
+      if (response.status === 200 || response.status === 201) {
         setOpen(false);
         setIncomeData({
           category: "",
@@ -235,29 +160,15 @@ const Income = () => {
     }
   };
 
-  // --- Delete Income ---
   const handleDelete = async (id) => {
-    const token = localStorage.getItem("token"); // Fetched inside the function
     if (!window.confirm("Delete this record?")) return;
-    if (!token) {
-      alert("Authentication failed. Please log in again.");
-      return;
-    }
 
     try {
-      const response = await fetch(
-        `https://expense-tracker-backend-chi-six.vercel.app/api/income/deleteincome/${id}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (response.ok) {
+      const response = await api.delete(`/income/deleteincome/${id}`);
+      if (response.status === 200) {
         setRefreshKey((prev) => prev + 1); // Trigger refresh
       } else {
-        const result = await response.json();
+        const result = response.data;
         alert(result.message || "Failed to delete income.");
       }
     } catch (error) {
@@ -272,7 +183,15 @@ const Income = () => {
   return (
     <ResponsiveDrawer>
       <Box sx={{ p: 3 }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            mb: 3,
+            alignItems: "center",
+            flexDirection: { xs: "column", sm: "row" },
+          }}
+        >
           <Typography variant="h4" fontWeight={700}>
             Income Dashboard
           </Typography>
@@ -281,6 +200,10 @@ const Income = () => {
             color="success"
             startIcon={<AddIcon />}
             onClick={() => setOpen(true)}
+            sx={{
+              width: { xs: "100%", sm: "auto" },
+              mt: { xs: 2, sm: 0 },
+            }}
           >
             Add New Income
           </Button>
@@ -331,16 +254,16 @@ const Income = () => {
               Not enough data to display a chart.
             </Typography>
           ) : (
-            <ResponsiveContainer width="100%" height="90%">
+            <ResponsiveContainer width="100%" height={300}>
               <BarChart
                 data={chartData}
                 margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="dayName" stroke="#333" />
-                <YAxis stroke="#333" formatter={(value) => `$${value}`} />
+                <YAxis stroke="#333" formatter={(value) => `Rs. ${value}`} />
                 <Tooltip
-                  formatter={(value) => [`$${value.toFixed(2)}`, "Income"]}
+                  formatter={(value) => [`Rs. ${value.toFixed(2)}`, "Income"]}
                   labelFormatter={(label, props) =>
                     props.length > 0
                       ? `${props[0].payload.date} (${label})`
@@ -390,7 +313,7 @@ const Income = () => {
                       </Typography>
                     </Box>
                     <Typography fontWeight={600} color="success.main">
-                      +${parseFloat(tx.amount).toFixed(2)}
+                      + Rs. {parseFloat(tx.amount).toFixed(2)}
                     </Typography>
                   </ListItem>
                   <Divider component="li" />

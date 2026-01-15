@@ -1,59 +1,37 @@
 import React, { useState } from "react";
+import { useForm } from "react-hook-form";
 import AuthLayout from "../../components/layouts/AuthLayout";
 import { useNavigate, Link } from "react-router-dom";
 import Input from "../../components/Inputs/Input";
-import { validateEmail } from "../../utils/helper";
 import ProfilePhotoSelector from "../../components/Inputs/ProfilePhotoSelector";
 import axios from "axios";
 
 const SignUp = () => {
   const [profilePic, setProfilePic] = useState(null);
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const navigate = useNavigate();
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError: setFormError,
+  } = useForm({
+    mode: "onBlur", // Validate on blur
+    defaultValues: {
+      fullName: "",
+      email: "",
+      password: "",
+    },
+  });
 
-  const handleSignup = async (e) => {
-    e.preventDefault();
-
-    if (!fullName) {
-      setError("Please enter your full name");
-      return;
-    }
-
-    const nameRegex = /^[A-Za-z\s'-]+$/;
-    if (!nameRegex.test(fullName)) {
-      setError(
-        "Name can only contain letters, spaces, hyphens, or apostrophes."
-      );
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      setError("Please enter a valid email address");
-      return;
-    }
-
-    if (!password) {
-      setError("Please enter your password");
-      return;
-    }
-
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters long.");
-      return;
-    }
-
-    setError("");
-
+  const onSubmit = async (data) => {
     try {
       const response = await axios.post(
-        "https://expense-tracker-backend-chi-six.vercel.app/api/auth/signup",
+        `${import.meta.env.VITE_API_BASE_URL}/api/auth/signup`,
         {
-          fullName,
-          email,
-          password,
+          fullName: data.fullName,
+          email: data.email,
+          password: data.password,
           profilePic, // optional — depends if you plan to store it later
         },
         {
@@ -62,31 +40,19 @@ const SignUp = () => {
           },
         }
       );
-      // const response = await axios.post(
-      //     "http://localhost:5000/api/auth/signup",
-      //     {
-      //       fullName,
-      //       email,
-      //       password,
-      //       profilePic, // optional — depends if you plan to store it later
-      //     },
-      //     {
-      //       headers: {
-      //         "Content-Type": "application/json",
-      //       },
-      //     }
-      //   );
+   
       console.log("Signup success:", response.data);
 
-      // Show success message or redirect
       alert("Account created successfully! Please log in.");
       navigate("/login");
     } catch (err) {
       console.error("Signup error:", err);
       const message =
         err.response?.data?.message || "Signup failed. Please try again.";
-      setError(message);
-      alert(error.message);
+      setFormError("root", {
+        type: "manual",
+        message: message,
+      });
     }
   };
 
@@ -100,43 +66,63 @@ const SignUp = () => {
           Join us today by entering your details below.
         </p>
 
-        <form onSubmit={handleSignup} className="w-full">
+        <form onSubmit={handleSubmit(onSubmit)} className="w-full">
           <ProfilePhotoSelector image={profilePic} setImage={setProfilePic} />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              value={fullName}
-              onChange={({ target }) => setFullName(target.value)}
+              {...register("fullName", {
+                required: "Please enter your full name",
+                pattern: {
+                  value: /^[A-Za-z\s'-]+$/,
+                  message: "Name can only contain letters, spaces, hyphens, or apostrophes.",
+                },
+              })}
               label="Full Name"
               placeholder="John Doe"
               type="text"
+              error={errors.fullName?.message}
             />
             <Input
+              {...register("email", {
+                required: "Please enter your email address",
+                validate: (value) =>
+                  validateEmail(value) || "Please enter a valid email address",
+              })}
               type="text"
-              value={email}
-              onChange={({ target }) => setEmail(target.value)}
               label="Email Address"
               placeholder="john@example.com"
+              error={errors.email?.message}
             />
             <div className="sm:col-span-2">
               <Input
-                value={password}
-                onChange={({ target }) => setPassword(target.value)}
+                {...register("password", {
+                  required: "Please enter your password",
+                  minLength: {
+                    value: 8,
+                    message: "Password must be at least 8 characters long.",
+                  },
+                })}
                 label="Password"
                 placeholder="Min 8 Characters"
                 type="password"
+                error={errors.password?.message}
               />
             </div>
           </div>
 
-          {error && (
+          {errors.root && (
             <p className="text-red-500 text-xs sm:text-sm pb-2.5 mt-2">
-              {error}
+              {errors.root.message}
             </p>
           )}
 
-          <button type="submit" className="btn-primary w-full mt-4">
-            SIGN UP
+          <button 
+            type="submit" 
+            className="btn-primary w-full mt-4"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "SIGNING UP..." : "SIGN UP"}
           </button>
 
           <p className="text-xs sm:text-sm text-slate-800 mt-3 text-center">

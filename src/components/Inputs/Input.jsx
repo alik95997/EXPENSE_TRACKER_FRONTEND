@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, forwardRef } from "react";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa6";
-const Input = ({ value, onChange, placeholder, label, type }) => {
+
+const Input = forwardRef(({ value, onChange, placeholder, label, type, error, ...rest }, ref) => {
   const [showPassword, setShowPassword] = useState(false);
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);
@@ -10,13 +11,15 @@ const Input = ({ value, onChange, placeholder, label, type }) => {
       <label className="text-[13px] text-slate-800">{label}</label>
       <div className="input-box">
         <input
+          ref={ref}
           type={
-            type == "password" ? (showPassword ? "text" : "password") : type
+            type === "password" ? (showPassword ? "text" : "password") : type
           }
           placeholder={placeholder}
           className="w-full bg-transparent outline-none"
           value={value}
-          onChange={(e) => onChange(e)}
+          onChange={onChange}
+          {...rest}
         />
         
         {type === "password" && (
@@ -37,8 +40,13 @@ const Input = ({ value, onChange, placeholder, label, type }) => {
           </>
         )}
       </div>
+      {error && (
+        <p className="text-red-500 text-xs mt-1">{error}</p>
+      )}
     </div>
   );
-};
+});
+
+Input.displayName = "Input";
 
 export default Input;

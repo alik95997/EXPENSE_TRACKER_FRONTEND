@@ -24,7 +24,8 @@ import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-
+import { useEffect, useState } from "react";
+import api from "../../utils/api";
 const drawerWidth = 200;
 
 function ResponsiveDrawer(props) {
@@ -33,11 +34,21 @@ function ResponsiveDrawer(props) {
   const [isClosing, setIsClosing] = React.useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const [name, setName] = useState("");
 
-  const name = localStorage.getItem("userName");
+  // const name = localStorage.getItem("userName");
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const response = await api.get("/auth/profile");
+      setName(response?.data?.data?.name);
+      console.log(name);
+    };
+    fetchProfile();
+  }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    localStorage.removeItem("userId");
     localStorage.clear();
     navigate("/login");
     handleDrawerClose();

@@ -1,59 +1,53 @@
-import React, { useState } from "react";
+import React from "react";
+import { useForm } from "react-hook-form";
 import AuthLayout from "../../components/layouts/AuthLayout";
-import { useNavigate, Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Input from "../../components/Inputs/Input";
-import { validateEmail } from "../../utils/helper";
-import axios from "axios";
+import api from "../../utils/api";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError: setFormError,
+  } = useForm({
+    mode: "onBlur",
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-    if (!validateEmail(email)) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-    if (!password) {
-      setError("Please enter your password.");
-      return;
-    }
-
+  const onSubmit = async (data) => {
     try {
-      const response = await axios.post(
-        "https://expense-tracker-backend-chi-six.vercel.app/api/auth/login",
-        { email, password },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await api.post("/auth/login", {
+        email: data.email,
+        password: data.password,
+      });
 
-      const { token, userId, name } = response.data;
+      console.log("Login success:", response.data);
 
-      if (!token || !userId) {
-        setError("Invalid response from server.");
-        return;
+      // Save user info to localStorage (for UI display only, not authentication)
+      if (response.data.userId) {
+        localStorage.setItem("userId", response.data.userId);
+      }
+      if (response.data.data?.fullName) {
+        localStorage.setItem("userName", response.data.data.fullName);
       }
 
-      // Store data in localStorage
-      localStorage.setItem("token", token);
-      localStorage.setItem("userId", userId);
-      localStorage.setItem("userName", name);
-
-      console.log("Login successful:", { token, userId, name });
-      alert("Logged In successfully");
+      // Redirect to dashboard
       navigate("/dashboard");
     } catch (err) {
       console.error("Login error:", err);
       const message =
         err.response?.data?.message || "Login failed. Please try again.";
-      setError(message);
+      setFormError("root", {
+        type: "manual",
+        message: message,
+      });
     }
   };
 
@@ -65,31 +59,47 @@ const Login = () => {
           Please enter your details to log in.
         </p>
 
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <Input
+            {...register("email", {
+              required: "Please enter your email address",
+              pattern: {
+                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                message: "Please enter a valid email address",
+              },
+            })}
             type="email"
-            value={email}
-            onChange={({ target }) => setEmail(target.value)}
             label="Email Address"
             placeholder="john@example.com"
+            error={errors.email?.message}
           />
 
           <Input
+            {...register("password", {
+              required: "Please enter your password",
+            })}
             type="password"
-            value={password}
-            onChange={({ target }) => setPassword(target.value)}
             label="Password"
             placeholder="Min 8 Characters"
+            error={errors.password?.message}
           />
 
-          {error && <p className="text-red-500 text-xs pb-2.5">{error}</p>}
+          {errors.root && (
+            <p className="text-red-500 text-xs pb-2.5">
+              {errors.root.message}
+            </p>
+          )}
 
-          <button type="submit" className="btn-primary">
-            LOGIN
+          <button 
+            type="submit" 
+            className="btn-primary"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "LOGGING IN..." : "LOGIN"}
           </button>
 
           <p className="text-[13px] text-slate-800 mt-3">
-            Don’t have an Account?{" "}
+            Don't have an Account?{" "}
             <Link className="font-medium text-primary underline" to="/signup">
               Signup
             </Link>

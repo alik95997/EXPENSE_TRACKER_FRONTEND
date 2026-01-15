@@ -6,193 +6,18 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import {
-  Box,
-  Typography,
-  Card,
-  CircularProgress,
-  Stack,
-  List,
-  ListItem,
-  Divider,
-  useTheme,
-  ListItemIcon,
-  Button,
-} from "@mui/material";
+import { Box, Typography, Card, useTheme } from "@mui/material";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import DownloadIcon from "@mui/icons-material/Download";
 import ResponsiveDrawer from "../../components/layouts/HomeLayout";
 import * as XLSX from "xlsx";
-
-// --- StatisticCard ---
-const StatisticCard = ({ title, amount, icon: IconComponent, color }) => {
-  const theme = useTheme();
-  const formattedAmount = `$${amount.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-  })}`;
-  const Icon = IconComponent.type;
-
-  const colorValue = theme.palette[color]?.main || theme.palette.primary.main;
-
-  return (
-    <Card
-      elevation={4}
-      sx={{
-        height: "100%",
-        borderRadius: 3,
-        background: theme.palette.background.paper,
-        p: 3,
-        transition: "all 0.3s ease-in-out",
-        "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: theme.shadows[10],
-        },
-      }}
-    >
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 1.5,
-        }}
-      >
-        <Typography
-          variant="subtitle2"
-          sx={{
-            textTransform: "uppercase",
-            fontWeight: 600,
-            color: theme.palette.text.secondary,
-            letterSpacing: "0.5px",
-          }}
-        >
-          {title}
-        </Typography>
-        <Icon sx={{ fontSize: 28, color: colorValue }} />
-      </Box>
-      <Typography
-        variant="h4"
-        sx={{
-          fontWeight: 700,
-          color: colorValue,
-          mt: 1,
-          letterSpacing: "-0.5px",
-        }}
-      >
-        {formattedAmount}
-      </Typography>
-    </Card>
-  );
-};
-
-// --- RecentTransactionsList ---
-const RecentTransactionsList = ({ transactions, limit = 8, onExport }) => {
-  const recentTx = transactions.slice(0, limit);
-  const theme = useTheme();
-
-  return (
-    <Card
-      elevation={4}
-      sx={{
-        borderRadius: 3,
-        boxShadow: theme.shadows[4],
-        height: "100%",
-        p: 3,
-        background: theme.palette.background.paper,
-      }}
-    >
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 2.5,
-        }}
-      >
-        <Typography variant="h6" sx={{ fontWeight: 700 }}>
-          Recent Transactions
-        </Typography>
-        <Button
-          variant="outlined"
-          color="primary"
-          size="small"
-          startIcon={<DownloadIcon />}
-          onClick={onExport}
-          disabled={transactions.length === 0}
-          sx={{ textTransform: "none" }}
-        >
-          Export
-        </Button>
-      </Box>
-
-      {recentTx.length === 0 ? (
-        <Box
-          sx={{
-            p: 4,
-            textAlign: "center",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Typography variant="body1" color="text.secondary">
-            No transactions recorded yet.
-          </Typography>
-        </Box>
-      ) : (
-        <List disablePadding>
-          {recentTx.map((tx, index) => {
-            const Icon = tx.displayIcon.type;
-            return (
-              <React.Fragment key={tx._id || index}>
-                <ListItem
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    py: 1.3,
-                    px: 0,
-                  }}
-                >
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <ListItemIcon sx={{ minWidth: 40 }}>
-                      <Icon color={tx.color} sx={{ fontSize: 22 }} />
-                    </ListItemIcon>
-                    <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {tx.category || tx.title || "General Transaction"}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(tx.date).toLocaleDateString()}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: 700,
-                      color: theme.palette[tx.color].main,
-                    }}
-                  >
-                    {tx.type === "expense" ? "-" : "+"}${tx.amount.toFixed(2)}
-                  </Typography>
-                </ListItem>
-                {index < recentTx.length - 1 && <Divider component="li" />}
-              </React.Fragment>
-            );
-          })}
-        </List>
-      )}
-    </Card>
-  );
-};
-
-// --- processRadialChartData ---
+import api from "../../utils/api";
+import StatisticCard from "../../components/Cards/StatisticCard";
+import RecentTransactionsList from "../../components/RecentTransactionsList/RecentTransactionsList";
+import LoadingScreen from "../../components/LoadingScreen/LoadingScreen";
 const processRadialChartData = (totalIncome, totalExpense) => {
   const total = totalIncome + totalExpense;
   if (total === 0) return [];
@@ -213,7 +38,6 @@ const processRadialChartData = (totalIncome, totalExpense) => {
   ];
 };
 
-// --- Home ---
 const Home = () => {
   const theme = useTheme();
   const [summary, setSummary] = useState({
@@ -225,13 +49,12 @@ const Home = () => {
   const [chartData, setChartData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Export to Excel function
   const exportToExcel = () => {
     const exportData = allTransactions.map((tx) => ({
       Date: new Date(tx.date).toLocaleDateString(),
       Category: tx.category || tx.title || "General Transaction",
       Type: tx.type === "income" ? "Income" : "Expense",
-      Amount: `$${parseFloat(tx.amount).toFixed(2)}`,
+      Amount: `Rs. ${parseFloat(tx.amount).toFixed(2)}`,
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -249,19 +72,11 @@ const Home = () => {
   const fetchAllData = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem("token");
+      const incomeRes = await api.get("/income/getincome");
+      const expenseRes = await api.get("/expense/getexpense");
 
-      const [incomeRes, expenseRes] = await Promise.all([
-        fetch("https://expense-tracker-backend-chi-six.vercel.app/api/income/getincome", {
-          headers: { Authorization: `Bearer ${token}` },
-        }).then((r) => r.json()),
-        fetch("https://expense-tracker-backend-chi-six.vercel.app/api/expense/getexpense", {
-          headers: { Authorization: `Bearer ${token}` },
-        }).then((r) => r.json()),
-      ]);
-
-      const incomeData = incomeRes.data || [];
-      const expenseData = expenseRes.data || [];
+      const incomeData = incomeRes.data?.data || [];
+      const expenseData = expenseRes.data?.data || [];
 
       const combined = [
         ...incomeData.map((tx) => ({
@@ -279,7 +94,6 @@ const Home = () => {
       ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
       setAllTransactions(combined);
-
       const totalIncome = incomeData.reduce(
         (sum, tx) => sum + (parseFloat(tx.amount) || 0),
         0
@@ -308,24 +122,6 @@ const Home = () => {
     fetchAllData();
   }, []);
 
-  if (isLoading) {
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "100vh",
-        }}
-      >
-        <Stack direction="row" spacing={2} alignItems="center">
-          <CircularProgress />
-          <Typography variant="h6">Loading Dashboard...</Typography>
-        </Stack>
-      </Box>
-    );
-  }
-
   return (
     <ResponsiveDrawer>
       <Box
@@ -352,7 +148,7 @@ const Home = () => {
           >
             Dashboard Overview
           </Typography>
-
+          {isLoading && <LoadingScreen />}
           {/* --- Stats Row --- */}
           <Box
             sx={{
@@ -370,19 +166,19 @@ const Home = () => {
               title="Total Balance"
               amount={summary.totalBalance}
               icon={<AccountBalanceWalletIcon />}
-              color={summary.totalBalance >= 0 ? "success" : "error"}
+              iconColor={summary.totalBalance >= 0 ? "success" : "error"}
             />
             <StatisticCard
               title="Total Income"
               amount={summary.totalIncome}
               icon={<MonetizationOnIcon />}
-              color="success"
+              iconColor="success"
             />
             <StatisticCard
               title="Total Expense"
               amount={summary.totalExpense}
               icon={<TrendingDownIcon />}
-              color="error"
+              iconColor="error"
             />
           </Box>
 
@@ -410,7 +206,7 @@ const Home = () => {
               </Typography>
               {chartData.length ? (
                 <Box sx={{ position: "relative", width: "100%", height: 400 }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height={300}>
                     <RadialBarChart
                       cx="45%"
                       cy="50%"
@@ -439,7 +235,7 @@ const Home = () => {
                           paddingLeft: "20px",
                         }}
                         formatter={(value, entry) => {
-                          return `${value}: $${entry.payload.value.toFixed(
+                          return `${value}: Rs. ${entry.payload.value.toFixed(
                             2
                           )} (${entry.payload.percentage}%)`;
                         }}
@@ -467,7 +263,7 @@ const Home = () => {
                                   variant="body2"
                                   color="text.secondary"
                                 >
-                                  ${payload[0].value.toFixed(2)} (
+                                  Rs. {payload[0].value.toFixed(2)} (
                                   {payload[0].payload.percentage}%)
                                 </Typography>
                               </Box>
@@ -501,7 +297,7 @@ const Home = () => {
                             : theme.palette.error.main,
                       }}
                     >
-                      ${summary.totalBalance.toFixed(2)}
+                      Rs. {summary.totalBalance.toFixed(2)}
                     </Typography>
                   </Box>
                 </Box>

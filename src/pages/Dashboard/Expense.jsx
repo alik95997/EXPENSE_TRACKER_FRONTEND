@@ -32,39 +32,8 @@ import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ResponsiveDrawer from "../../components/layouts/HomeLayout";
-
-// --- Helper Component for Overview Cards ---
-const StatisticCard = ({ title, amount, icon, iconColor = "error" }) => {
-  const formattedAmount = `$${amount.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-  })}`;
-  return (
-    <Card sx={{ height: "100%", borderRadius: 2, boxShadow: 3 }}>
-      <CardContent>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-          {React.cloneElement(icon, {
-            color: iconColor,
-            sx: { fontSize: 30, mr: 1.5 },
-          })}
-          <Typography
-            variant="subtitle2"
-            color="text.secondary"
-            sx={{ textTransform: "uppercase", fontWeight: 600 }}
-          >
-            {title}
-          </Typography>
-        </Box>
-        <Typography
-          variant="h4"
-          component="div"
-          sx={{ fontWeight: 700, color: "error.main" }}
-        >
-          {formattedAmount}
-        </Typography>
-      </CardContent>
-    </Card>
-  );
-};
+import api from "../../utils/api";
+import StatisticCard from "../../components/Cards/StatisticCard";
 
 // --- Process data for BarChart (Last 30 days) ---
 const processBarChartData = (transactions) => {
@@ -113,8 +82,6 @@ const Expense = () => {
     date: new Date().toISOString().slice(0, 10),
   });
 
-  const token = localStorage.getItem("token"); // JWT from login
-
   const handleClose = () => setOpen(false);
 
   const handleChange = (e) => {
@@ -141,19 +108,13 @@ const Expense = () => {
     setSummary({ totalExpense: total, last30DaysExpense: last30Days });
   };
 
-  // --- Fetch Expense ---
   const fetchExpense = async () => {
     setIsLoadingTransactions(true);
     try {
-      const response = await fetch(
-        `https://expense-tracker-backend-chi-six.vercel.app/api/expense/getexpense`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      const result = await response.json();
+      const response = await api.get("/expense/getexpense");
+      const result = response.data;
 
-      if (response.ok) {
+      if (response.status === 200) {
         const data = result.data || [];
         data.sort((a, b) => new Date(b.date) - new Date(a.date));
         setTransactions(data);
@@ -193,21 +154,10 @@ const Expense = () => {
     };
 
     try {
-      const response = await fetch(
-        `https://expense-tracker-backend-chi-six.vercel.app/api/expense/addexpense`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const response = await api.post("/expense/addexpense", payload);
+      const result = response.data;
 
-      const result = await response.json();
-
-      if (response.ok) {
+      if (response.status === 200 || response.status === 201) {
         setRefreshKey((prev) => prev + 1);
         setExpenseData({
           category: "",
@@ -226,18 +176,13 @@ const Expense = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this expense?")) return;
+    if (!window.confirm("Are you sure you want to delete this expense?"))
+      return;
 
     setIsLoadingTransactions(true);
     try {
-      const response = await fetch(
-        `https://expense-tracker-backend-chi-six.vercel.app/api/expense/deleteexpense/${id}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (response.ok) setRefreshKey((prev) => prev + 1);
+      const response = await api.delete(`/expense/deleteexpense/${id}`);
+      if (response.status === 200) setRefreshKey((prev) => prev + 1);
       else console.error("Failed to delete expense");
     } catch (error) {
       console.error("Network Error:", error);
@@ -263,7 +208,11 @@ const Expense = () => {
             flexDirection: { xs: "column", sm: "row" },
           }}
         >
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: { xs: 2, sm: 0 } }}>
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{ fontWeight: 700, mb: { xs: 2, sm: 0 } }}
+          >
             Expense Dashboard
           </Typography>
           <Button
@@ -278,38 +227,76 @@ const Expense = () => {
         </Box>
 
         {/* Summary Cards */}
-        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>Expense Summary</Typography>
+        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
+          Expense Summary
+        </Typography>
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "repeat(2,1fr)", md: "repeat(3,1fr)" },
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2,1fr)",
+              md: "repeat(3,1fr)",
+            },
             gap: 3,
             mb: 5,
           }}
         >
-          <StatisticCard title="Total Expense (Lifetime)" amount={summary.totalExpense} icon={<TrendingDownIcon />} iconColor="error" />
-          <StatisticCard title="Expense Last 30 Days" amount={summary.last30DaysExpense} icon={<ArrowDownwardIcon />} iconColor="error" />
+          <StatisticCard
+            title="Total Expense (Lifetime)"
+            amount={summary.totalExpense}
+            icon={<TrendingDownIcon />}
+            iconColor="error"
+          />
+          <StatisticCard
+            title="Expense Last 30 Days"
+            amount={summary.last30DaysExpense}
+            icon={<ArrowDownwardIcon />}
+            iconColor="error"
+          />
         </Box>
 
         {/* BarChart */}
-        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>Last 30 Days Expenses</Typography>
+        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
+          Last 30 Days Expenses
+        </Typography>
         <Card sx={{ borderRadius: 2, boxShadow: 3, mb: 5, p: 3 }}>
           {isLoadingTransactions ? (
-            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: 300 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: 300,
+              }}
+            >
               <CircularProgress size={24} />
               <Typography sx={{ ml: 2 }}>Loading Chart...</Typography>
             </Box>
           ) : chartData.length === 0 ? (
-            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: 300 }}>
-              <Typography variant="body1" color="text.secondary">No data available for chart</Typography>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: 300,
+              }}
+            >
+              <Typography variant="body1" color="text.secondary">
+                No data available for chart
+              </Typography>
             </Box>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="dayLabel" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+                <XAxis
+                  dataKey="dayLabel"
+                  tick={{ fontSize: 10 }}
+                  interval="preserveStartEnd"
+                />
                 <YAxis />
-                <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
+                <Tooltip formatter={(value) => `Rs. ${value.toFixed(2)}`} />
                 <Legend />
                 <Bar dataKey="expense" fill="#f44336" name="Expense" />
               </BarChart>
@@ -318,37 +305,71 @@ const Expense = () => {
         </Card>
 
         {/* Transactions List */}
-        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>Recent Expenses</Typography>
+        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
+          Recent Expenses
+        </Typography>
         <Card sx={{ borderRadius: 2, boxShadow: 1 }}>
           {isLoadingTransactions ? (
-            <Box sx={{ display: "flex", justifyContent: "center", p: 4, alignItems: "center" }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                p: 4,
+                alignItems: "center",
+              }}
+            >
               <CircularProgress size={24} />
               <Typography sx={{ ml: 2 }}>Loading Expenses...</Typography>
             </Box>
           ) : transactions.length === 0 ? (
             <Box sx={{ p: 4, textAlign: "center" }}>
-              <Typography variant="h6" color="text.secondary">No expense transactions found.</Typography>
-              <Typography variant="body2" color="text.secondary">Add your first expense record above!</Typography>
+              <Typography variant="h6" color="text.secondary">
+                No expense transactions found.
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Add your first expense record above!
+              </Typography>
             </Box>
           ) : (
             <List>
               {transactions.map((tx, index) => (
                 <React.Fragment key={tx._id || index}>
-                  <ListItem sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", py: 1 }}>
+                  <ListItem
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      py: 1,
+                    }}
+                  >
                     <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="body1" sx={{ fontWeight: 500 }}>{tx.category}</Typography>
-                      <Typography variant="caption" color="text.secondary">{new Date(tx.date).toLocaleDateString()}</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        {tx.category}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(tx.date).toLocaleDateString()}
+                      </Typography>
                     </Box>
                     <Box sx={{ display: "flex", alignItems: "center" }}>
-                      <Typography variant="body1" sx={{ fontWeight: 600, color: "error.main", mr: 2 }}>
-                        - ${parseFloat(tx.amount).toFixed(2)}
+                      <Typography
+                        variant="body1"
+                        sx={{ fontWeight: 600, color: "error.main", mr: 2 }}
+                      >
+                        - Rs. {parseFloat(tx.amount).toFixed(2)}
                       </Typography>
-                      <IconButton aria-label="delete" size="small" color="error" onClick={() => handleDelete(tx._id)}>
+                      <IconButton
+                        aria-label="delete"
+                        size="small"
+                        color="error"
+                        onClick={() => handleDelete(tx._id)}
+                      >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </Box>
                   </ListItem>
-                  {index < transactions.length - 1 && <Divider component="li" />}
+                  {index < transactions.length - 1 && (
+                    <Divider component="li" />
+                  )}
                 </React.Fragment>
               ))}
             </List>
@@ -361,14 +382,57 @@ const Expense = () => {
           <Box sx={{ width: { xs: "90%", sm: 400 }, margin: "0 auto" }}>
             <DialogContent>
               <Stack spacing={2}>
-                <TextField autoFocus required margin="dense" id="category" name="category" label="Category (e.g., Groceries, Rent, Utilities)" type="text" fullWidth variant="outlined" value={expenseData.category} onChange={handleChange} />
-                <TextField required margin="dense" id="amount" name="amount" label="Amount" type="number" fullWidth variant="outlined" inputProps={{ step: "0.01" }} value={expenseData.amount} onChange={handleChange} />
-                <TextField required margin="dense" id="date" name="date" label="Date" type="date" fullWidth variant="outlined" InputLabelProps={{ shrink: true }} value={expenseData.date} onChange={handleChange} />
+                <TextField
+                  autoFocus
+                  required
+                  margin="dense"
+                  id="category"
+                  name="category"
+                  label="Category (e.g., Groceries, Rent, Utilities)"
+                  type="text"
+                  fullWidth
+                  variant="outlined"
+                  value={expenseData.category}
+                  onChange={handleChange}
+                />
+                <TextField
+                  required
+                  margin="dense"
+                  id="amount"
+                  name="amount"
+                  label="Amount"
+                  type="number"
+                  fullWidth
+                  variant="outlined"
+                  inputProps={{ step: "0.01" }}
+                  value={expenseData.amount}
+                  onChange={handleChange}
+                />
+                <TextField
+                  required
+                  margin="dense"
+                  id="date"
+                  name="date"
+                  label="Date"
+                  type="date"
+                  fullWidth
+                  variant="outlined"
+                  InputLabelProps={{ shrink: true }}
+                  value={expenseData.date}
+                  onChange={handleChange}
+                />
               </Stack>
             </DialogContent>
             <DialogActions>
-              <Button onClick={handleClose} color="primary" disabled={loading}>Cancel</Button>
-              <Button variant="contained" color="error" onClick={submitExpense} disabled={loading}>
+              <Button onClick={handleClose} color="primary" disabled={loading}>
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                onClick={submitExpense}
+                disabled={loading}
+              >
                 {loading ? "Submitting..." : "Submit Expense"}
               </Button>
             </DialogActions>
