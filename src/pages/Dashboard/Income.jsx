@@ -35,7 +35,6 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ResponsiveDrawer from "../../components/layouts/HomeLayout";
 import api from "../../utils/api";
 import StatisticCard from "../../components/Cards/StatisticCard";
-
 const processBarChartData = (transactions) => {
   const last30Days = [];
   const today = new Date();
