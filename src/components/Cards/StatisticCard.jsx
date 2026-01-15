@@ -1,4 +1,3 @@
-import React from "react";
 import { Card, CardContent, Box, Typography, useTheme } from "@mui/material";
 
 const StatisticCard = ({ title, amount, icon, iconColor = "primary" }) => {
