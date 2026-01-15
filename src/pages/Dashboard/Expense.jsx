@@ -33,14 +33,13 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ResponsiveDrawer from "../../components/layouts/HomeLayout";
 import api from "../../utils/api";
-import StatisticCard from "../../components/cards/StatisticCard";
+import StatisticCard from "../../components/Cards/StatisticCard";
 
 // --- Process data for BarChart (Last 30 days) ---
 const processBarChartData = (transactions) => {
   const last30Days = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
   for (let i = 29; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(today.getDate() - i);

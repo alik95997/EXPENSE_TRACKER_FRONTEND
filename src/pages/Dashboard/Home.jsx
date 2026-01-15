@@ -15,7 +15,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ResponsiveDrawer from "../../components/layouts/HomeLayout";
 import * as XLSX from "xlsx";
 import api from "../../utils/api";
-import StatisticCard from "../../components/cards/StatisticCard";
+import StatisticCard from "../../components/Cards/StatisticCard";
 import RecentTransactionsList from "../../components/RecentTransactionsList/RecentTransactionsList";
 import LoadingScreen from "../../components/LoadingScreen/LoadingScreen";
 const processRadialChartData = (totalIncome, totalExpense) => {

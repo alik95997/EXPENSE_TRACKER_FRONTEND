@@ -9,14 +9,14 @@ import axios from "axios";
 const SignUp = () => {
   const [profilePic, setProfilePic] = useState(null);
   const navigate = useNavigate();
-  
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
     setError: setFormError,
   } = useForm({
-    mode: "onBlur", // Validate on blur
+    mode: "onBlur",
     defaultValues: {
       fullName: "",
       email: "",
@@ -32,7 +32,7 @@ const SignUp = () => {
           fullName: data.fullName,
           email: data.email,
           password: data.password,
-          profilePic, // optional — depends if you plan to store it later
+          profilePic,
         },
         {
           headers: {
@@ -40,7 +40,7 @@ const SignUp = () => {
           },
         }
       );
-   
+
       console.log("Signup success:", response.data);
 
       alert("Account created successfully! Please log in.");
@@ -75,7 +75,8 @@ const SignUp = () => {
                 required: "Please enter your full name",
                 pattern: {
                   value: /^[A-Za-z\s'-]+$/,
-                  message: "Name can only contain letters, spaces, hyphens, or apostrophes.",
+                  message:
+                    "Name can only contain letters, spaces, hyphens, or apostrophes.",
                 },
               })}
               label="Full Name"
@@ -86,8 +87,10 @@ const SignUp = () => {
             <Input
               {...register("email", {
                 required: "Please enter your email address",
-                validate: (value) =>
-                  validateEmail(value) || "Please enter a valid email address",
+                pattern: {
+                  value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                  message: "Please enter a valid email address",
+                },
               })}
               type="text"
               label="Email Address"
@@ -117,8 +120,8 @@ const SignUp = () => {
             </p>
           )}
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="btn-primary w-full mt-4"
             disabled={isSubmitting}
           >

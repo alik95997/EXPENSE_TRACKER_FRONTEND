@@ -39,14 +39,18 @@ function ResponsiveDrawer(props) {
   useEffect(() => {
     const fetchProfile = async () => {
       const response = await api.get("/auth/profile");
-      setName(response?.data?.data?.name);
-      console.log(name);
+
+      setName(response?.data?.data?.fullName);
     };
     fetchProfile();
   }, []);
 
-  const handleLogout = () => {
-    
+  const handleLogout = async () => {
+    try {
+      const response = await api.post("/auth/logout");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
     localStorage.removeItem("userId");
     localStorage.clear();
     navigate("/login");
