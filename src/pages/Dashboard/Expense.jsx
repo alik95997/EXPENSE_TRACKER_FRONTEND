@@ -181,7 +181,7 @@ const Expense = () => {
     try {
       const response = await api.delete(`/expense/deleteexpense/${id}`);
       if (response.status === 200) setRefreshKey((prev) => prev + 1);
-      else console.error("Failed to delete expense");
+      else console.error("Failed to delete the expense");
     } catch (error) {
       console.error("Network Error:", error);
     } finally {
